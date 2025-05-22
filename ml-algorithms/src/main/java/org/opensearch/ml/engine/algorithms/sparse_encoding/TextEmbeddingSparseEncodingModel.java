@@ -7,6 +7,7 @@ package org.opensearch.ml.engine.algorithms.sparse_encoding;
 
 import org.opensearch.ml.common.FunctionName;
 import org.opensearch.ml.common.model.MLModelConfig;
+import org.opensearch.ml.common.model.TextEmbeddingModelConfig;
 import org.opensearch.ml.engine.algorithms.TextEmbeddingModel;
 import org.opensearch.ml.engine.annotation.Function;
 
@@ -22,7 +23,11 @@ public class TextEmbeddingSparseEncodingModel extends TextEmbeddingModel {
 
     @Override
     public Translator<Input, Output> getTranslator(String engine, MLModelConfig modelConfig) {
-        return new SparseEncodingTranslator();
+        if (modelConfig == null) {
+            return new SparseEncodingTranslator();
+        }
+        String sparseEncodingFormat = ((TextEmbeddingModelConfig) modelConfig).getSparseEncodingFormat();
+        return new SparseEncodingTranslator(sparseEncodingFormat);
     }
 
     @Override

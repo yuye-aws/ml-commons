@@ -22,16 +22,35 @@ import ai.djl.modality.Output;
 import ai.djl.ndarray.NDArray;
 import ai.djl.ndarray.NDList;
 import ai.djl.translate.TranslatorContext;
+import java.util.Locale;
 
 public class SparseEncodingTranslator extends SentenceTransformerTranslator {
+    public enum SparseEncodingFormat {
+        WORD,
+        INT
+    }
+
+    private final SparseEncodingFormat sparseEncodingFormat;
+
+    public SparseEncodingTranslator() {
+        this.sparseEncodingFormat = SparseEncodingFormat.WORD;
+    }
+
+    public SparseEncodingTranslator(String sparseEncodingFormat) {
+        if (sparseEncodingFormat == null) {
+            this.sparseEncodingFormat = SparseEncodingFormat.WORD;
+        } else {
+            this.sparseEncodingFormat = SparseEncodingFormat.valueOf(sparseEncodingFormat.toUpperCase(Locale.ROOT));;
+        }
+    }
+
+
     @Override
     public Output processOutput(TranslatorContext ctx, NDList list) {
         Output output = new Output(200, "OK");
 
         List<ModelTensor> outputs = new ArrayList<>();
-        Iterator<NDArray> iterator = list.iterator();
-        while (iterator.hasNext()) {
-            NDArray ndArray = iterator.next();
+        for (NDArray ndArray : list) {
             String name = ndArray.getName();
             Map<String, Float> tokenWeightsMap = convertOutput(ndArray);
             Map<String, ?> wrappedMap = Map.of(ML_MAP_RESPONSE_KEY, Collections.singletonList(tokenWeightsMap));
@@ -49,7 +68,9 @@ public class SparseEncodingTranslator extends SentenceTransformerTranslator {
         NDArray nonZeroIndices = array.nonzero().squeeze();
 
         for (long index : nonZeroIndices.toLongArray()) {
-            String s = this.tokenizer.decode(new long[] { index }, true);
+            String s = sparseEncodingFormat == SparseEncodingFormat.INT
+                ? Long.toString(index)
+                : this.tokenizer.decode(new long[] { index }, true);
             if (!s.isEmpty()) {
                 map.put(s, array.getFloat(index));
             }
